@@ -1,53 +1,608 @@
 <!DOCTYPE html>
 <html lang="uk">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Юний Ученик - Створено Артемом Процком</title>
-    <!-- Tailwind is still loaded via CDN for simplicity, though in a full build you might import it in CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ['Nunito', 'sans-serif'],
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Юний Ученик - Створено Артемом Процком</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind Config -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Nunito', 'sans-serif'],
+          },
+          colors: {
+            primary: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
             },
-            colors: {
-              primary: {
-                50: '#eff6ff',
-                100: '#dbeafe',
-                500: '#3b82f6',
-                600: '#2563eb',
-                700: '#1d4ed8',
-              },
-              accent: {
-                400: '#fbbf24', // Ukraine yellow
-                500: '#f59e0b',
-              }
+            accent: {
+              400: '#fbbf24', // Ukraine yellow
+              500: '#f59e0b',
             }
           }
         }
       }
-    </script>
+    }
+  </script>
+
+  <!-- Import Map for Modules -->
   <script type="importmap">
 {
   "imports": {
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
-    "vite": "https://aistudiocdn.com/vite@^7.2.6",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
-    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1",
+    "react": "https://esm.sh/react@18.2.0",
+    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+    "lucide-react": "https://esm.sh/lucide-react@0.378.0",
+    "@google/genai": "https://esm.sh/@google/genai@0.1.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
     "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/"
+    "vite": "https://aistudiocdn.com/vite@^7.2.6",
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1"
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
+
+  <!-- Babel for JSX compilation in browser -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Polyfill for process.env -->
+  <script>
+    window.process = {
+      env: {
+        // API Key provided by user for instant functionality
+        API_KEY: 'AIzaSyA9LPdMsZ_7uG5WasgKjVmdA4icxOy2rhk'
+      }
+    };
+  </script>
 </head>
-  <body class="bg-slate-50 text-slate-900">
-    <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
-  </body>
+<body class="bg-slate-50 text-slate-900">
+  <div id="root"></div>
+
+  <!-- Main Application Script -->
+  <script type="text/babel" data-type="module" data-presets="typescript,react">
+    import React, { useState, useRef, useEffect } from 'react';
+    import { createRoot } from 'react-dom/client';
+    import { 
+      LayoutDashboard, 
+      GraduationCap, 
+      FolderOpen, 
+      BookOpen, 
+      Folder, 
+      Plus, 
+      FileText, 
+      MoreVertical, 
+      Calendar,
+      Upload, 
+      Camera, 
+      Check, 
+      AlertCircle, 
+      Sparkles, 
+      Loader2, 
+      ArrowRight 
+    } from 'lucide-react';
+    import { GoogleGenAI, Type } from '@google/genai';
+
+    // --- TYPES ---
+    const Subject = {
+      MATH: 'Математика',
+      UKR_LANG: 'Українська мова',
+      LITERATURE: 'Література',
+      ENGLISH: 'Англійська мова',
+      HISTORY: 'Історія'
+    };
+
+    // --- SERVICE: Gemini ---
+    const analyzeHomework = async (imageBase64, subject, grade) => {
+      const apiKey = process.env.API_KEY;
+      if (!apiKey) throw new Error("API Key is missing.");
+
+      const ai = new GoogleGenAI({ apiKey });
+
+      const prompt = `
+        Ти - досвідчений та доброзичливий шкільний вчитель в Україні.
+        Твоє завдання: перевірити домашнє завдання учня ${grade}-го класу з предмету "${subject}".
+        
+        1. Уважно проаналізуй зображення зошита.
+        2. Знайди помилки (орфографічні, граматичні або математичні).
+        3. Оціни роботу за 12-бальною шкалою (від 1 до 12). Будь об'єктивним, але підтримуючим.
+        4. Напиши короткий, мотивуючий підсумок українською мовою.
+        5. Склади список виправлень з поясненнями.
+
+        Поверни відповідь виключно у форматі JSON згідно зі схемою.
+      `;
+
+      try {
+        const response = await ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: {
+            parts: [
+              { inlineData: { mimeType: 'image/jpeg', data: imageBase64 } },
+              { text: prompt }
+            ]
+          },
+          config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: Type.OBJECT,
+              properties: {
+                score: { type: Type.INTEGER },
+                summary: { type: Type.STRING },
+                corrections: {
+                  type: Type.ARRAY,
+                  items: {
+                    type: Type.OBJECT,
+                    properties: {
+                      original: { type: Type.STRING },
+                      correction: { type: Type.STRING },
+                      explanation: { type: Type.STRING }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        });
+
+        if (response.text) {
+          return JSON.parse(response.text);
+        } else {
+          throw new Error("No response text received.");
+        }
+      } catch (error) {
+        console.error("Gemini Analysis Error:", error);
+        throw new Error("Не вдалося перевірити роботу. Перевірте інтернет або якість фото.");
+      }
+    };
+
+    // --- COMPONENT: Navigation ---
+    const Navigation = ({ currentView, onChangeView }) => {
+      const navItems = [
+        { id: 'dashboard', label: 'Головна', icon: LayoutDashboard },
+        { id: 'grader', label: 'Перевірка ШІ', icon: GraduationCap },
+        { id: 'folder', label: 'Мої Папки', icon: FolderOpen },
+      ];
+
+      return (
+        <nav className="fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 p-2 md:relative md:w-64 md:h-screen md:border-t-0 md:border-r flex md:flex-col justify-around md:justify-start gap-2 z-50">
+          <div className="hidden md:flex flex-col items-center p-6 mb-6">
+            <div className="bg-primary-500 text-white p-3 rounded-2xl mb-3 shadow-lg transform rotate-3 hover:rotate-0 transition-all duration-300">
+              <BookOpen size={32} />
+            </div>
+            <h1 className="text-2xl font-bold text-slate-800">Юний Ученик</h1>
+            <p className="text-xs text-slate-500 mt-1">Автор: Артем Процко</p>
+          </div>
+
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = currentView === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => onChangeView(item.id)}
+                className={`flex flex-col md:flex-row items-center md:px-6 md:py-4 rounded-xl transition-all duration-200 flex-1 md:flex-none
+                  ${isActive 
+                    ? 'text-primary-600 bg-primary-50 md:bg-white md:border-r-4 md:border-primary-500' 
+                    : 'text-slate-500 hover:text-primary-500 hover:bg-slate-50'
+                  }`}
+              >
+                <Icon size={24} className={`mb-1 md:mb-0 md:mr-3 ${isActive ? 'fill-current opacity-20' : ''}`} />
+                <span className={`text-xs md:text-base font-medium ${isActive ? 'font-bold' : ''}`}>{item.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+      );
+    };
+
+    // --- COMPONENT: FolderSystem ---
+    const FolderSystem = () => {
+      const [folders, setFolders] = useState([
+        {
+          id: '1',
+          name: 'Математика',
+          color: 'bg-blue-100 text-blue-600',
+          files: [
+            { id: 'f1', title: 'Дроби та відсотки', subject: Subject.MATH, date: '2023-10-24', score: 10 },
+            { id: 'f2', title: 'Контрольна робота №2', subject: Subject.MATH, date: '2023-10-20', score: 11 },
+          ]
+        },
+        {
+          id: '2',
+          name: 'Українська мова',
+          color: 'bg-yellow-100 text-yellow-600',
+          files: [
+            { id: 'f3', title: 'Твір "Моя родина"', subject: Subject.UKR_LANG, date: '2023-10-22', score: 9 },
+          ]
+        },
+        {
+          id: '3',
+          name: 'Англійська',
+          color: 'bg-purple-100 text-purple-600',
+          files: []
+        }
+      ]);
+
+      const [activeFolderId, setActiveFolderId] = useState(null);
+      const activeFolder = folders.find(f => f.id === activeFolderId);
+
+      return (
+        <div className="p-6 max-w-6xl mx-auto pb-24 md:pb-6">
+          <header className="mb-8 flex justify-between items-center">
+            <div>
+              <h2 className="text-3xl font-bold text-slate-800">Мої Папки</h2>
+              <p className="text-slate-500">Організуй свої домашні завдання тут</p>
+            </div>
+            <button className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-xl flex items-center gap-2 transition-colors shadow-md">
+              <Plus size={20} />
+              <span className="hidden sm:inline">Нова папка</span>
+            </button>
+          </header>
+
+          {!activeFolder ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {folders.map(folder => (
+                <button
+                  key={folder.id}
+                  onClick={() => setActiveFolderId(folder.id)}
+                  className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md hover:border-primary-200 transition-all group text-left"
+                >
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${folder.color}`}>
+                    <Folder size={24} className="fill-current opacity-80" />
+                  </div>
+                  <h3 className="font-bold text-lg text-slate-800 group-hover:text-primary-600 transition-colors">
+                    {folder.name}
+                  </h3>
+                  <p className="text-sm text-slate-400 mt-1">
+                    {folder.files.length} {folder.files.length === 1 ? 'файл' : 'файлів'}
+                  </p>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div>
+              <button 
+                onClick={() => setActiveFolderId(null)}
+                className="mb-6 text-slate-500 hover:text-primary-600 flex items-center gap-2 font-medium"
+              >
+                ← Назад до папок
+              </button>
+              
+              <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+                <div className={`p-8 ${activeFolder.color} bg-opacity-30`}>
+                  <div className="flex items-center gap-4">
+                    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center bg-white shadow-sm ${activeFolder.color}`}>
+                      <Folder size={32} className="fill-current" />
+                    </div>
+                    <div>
+                      <h2 className="text-3xl font-bold text-slate-800">{activeFolder.name}</h2>
+                      <p className="opacity-70 font-medium">Архів робіт</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6">
+                  {activeFolder.files.length > 0 ? (
+                    <div className="space-y-3">
+                      {activeFolder.files.map(file => (
+                        <div key={file.id} className="flex items-center p-4 bg-slate-50 rounded-xl hover:bg-white hover:shadow-md border border-transparent hover:border-slate-100 transition-all">
+                          <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm text-slate-400 mr-4">
+                            <FileText size={20} />
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="font-bold text-slate-800">{file.title}</h4>
+                            <div className="flex items-center gap-3 text-xs text-slate-400 mt-0.5">
+                              <span className="flex items-center gap-1"><Calendar size={12}/> {file.date}</span>
+                              <span>•</span>
+                              <span>{file.subject}</span>
+                            </div>
+                          </div>
+                          {file.score && (
+                            <div className={`px-3 py-1 rounded-full font-bold text-sm mr-4 ${
+                              file.score >= 10 ? 'bg-green-100 text-green-700' : 
+                              file.score >= 7 ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'
+                            }`}>
+                              {file.score} / 12
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 text-slate-400">
+                      <p className="text-lg font-medium">Папка порожня</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    // --- COMPONENT: HomeworkGrader ---
+    const HomeworkGrader = () => {
+      const [grade, setGrade] = useState(5);
+      const [subject, setSubject] = useState(Subject.MATH);
+      const [image, setImage] = useState(null);
+      const [isAnalyzing, setIsAnalyzing] = useState(false);
+      const [result, setResult] = useState(null);
+      const [error, setError] = useState(null);
+      const fileInputRef = useRef(null);
+
+      const handleFileChange = (e) => {
+        const file = e.target.files?.[0];
+        if (file) {
+          if (file.size > 5 * 1024 * 1024) {
+            setError("Файл занадто великий. Максимум 5MB");
+            return;
+          }
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            setImage(reader.result);
+            setError(null);
+            setResult(null);
+          };
+          reader.readAsDataURL(file);
+        }
+      };
+
+      const handleAnalyze = async () => {
+        if (!image) return;
+        setIsAnalyzing(true);
+        setError(null);
+        try {
+          const base64Data = image.split(',')[1];
+          const analysis = await analyzeHomework(base64Data, subject, grade);
+          setResult(analysis);
+        } catch (err) {
+          setError(err.message || "Сталася невідома помилка");
+        } finally {
+          setIsAnalyzing(false);
+        }
+      };
+
+      const handleReset = () => {
+        setImage(null);
+        setResult(null);
+        setError(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      };
+
+      return (
+        <div className="p-6 max-w-4xl mx-auto pb-24 md:pb-6">
+          <div className="mb-8">
+            <h2 className="text-3xl font-bold text-slate-800 flex items-center gap-3">
+              <Sparkles className="text-accent-500 fill-current" />
+              Розумна Перевірка
+            </h2>
+            <p className="text-slate-500 mt-1">Завантаж фото зошита та отримай миттєву оцінку від штучного інтелекту</p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8">
+            <div className="space-y-6">
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                <h3 className="font-bold text-lg mb-4 text-slate-700">Налаштування</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-500 mb-1">Обери клас</label>
+                    <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((g) => (
+                        <button
+                          key={g}
+                          onClick={() => setGrade(g)}
+                          className={`w-10 h-10 flex-shrink-0 rounded-lg font-bold transition-all ${
+                            grade === g 
+                              ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/30 scale-110' 
+                              : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+                          }`}
+                        >
+                          {g}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-500 mb-1">Предмет</label>
+                    <select 
+                      value={subject}
+                      onChange={(e) => setSubject(e.target.value)}
+                      className="w-full p-3 rounded-xl bg-slate-50 border-none text-slate-700 font-medium focus:ring-2 focus:ring-primary-500 outline-none"
+                    >
+                      {Object.values(Subject).map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {!image ? (
+                <div 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="border-3 border-dashed border-slate-200 rounded-3xl p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:border-primary-400 hover:bg-primary-50 transition-all group bg-white h-64"
+                >
+                  <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
+                  <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform text-primary-500">
+                    <Camera size={32} />
+                  </div>
+                  <h4 className="font-bold text-lg text-slate-700 group-hover:text-primary-600">Завантажити фото</h4>
+                </div>
+              ) : (
+                <div className="relative rounded-3xl overflow-hidden shadow-lg border-4 border-white">
+                  <img src={image} alt="Homework" className="w-full h-auto object-cover max-h-96" />
+                  {!isAnalyzing && !result && (
+                    <button onClick={handleReset} className="absolute top-4 right-4 bg-white/90 backdrop-blur text-red-500 p-2 rounded-full hover:bg-white shadow-md">
+                      ✕
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {image && !result && (
+                <button
+                  onClick={handleAnalyze}
+                  disabled={isAnalyzing}
+                  className={`w-full py-4 rounded-xl font-bold text-lg shadow-xl transition-all flex items-center justify-center gap-2 ${
+                    isAnalyzing ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-gradient-to-r from-primary-600 to-primary-500 text-white hover:shadow-primary-500/25'
+                  }`}
+                >
+                  {isAnalyzing ? <><Loader2 className="animate-spin" /> Перевіряю...</> : <><Sparkles size={20} /> Оцінити роботу</>}
+                </button>
+              )}
+              
+              {error && (
+                <div className="p-4 bg-red-50 text-red-600 rounded-xl flex items-center gap-3 text-sm font-medium border border-red-100">
+                  <AlertCircle size={20} /> {error}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-6">
+              {result ? (
+                <div className="animate-fade-in space-y-6">
+                  <div className="bg-white rounded-3xl shadow-lg border border-slate-100 overflow-hidden relative">
+                    <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-green-400 to-blue-500"></div>
+                    <div className="p-8 text-center">
+                      <span className="text-sm font-bold text-slate-400 uppercase tracking-wider">Оцінка</span>
+                      <div className="flex items-center justify-center my-4">
+                        <span className={`text-7xl font-black ${result.score >= 10 ? 'text-green-500' : result.score >= 7 ? 'text-blue-500' : 'text-orange-500'}`}>
+                          {result.score}
+                        </span>
+                        <span className="text-3xl text-slate-300 font-bold ml-2">/ 12</span>
+                      </div>
+                      <p className="text-slate-600 leading-relaxed font-medium">"{result.summary}"</p>
+                    </div>
+                  </div>
+
+                  {result.corrections.length > 0 ? (
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+                      <h3 className="font-bold text-lg mb-4 text-slate-800 flex items-center gap-2">
+                        <AlertCircle className="text-orange-500" size={20} />
+                        Знайдені помилки
+                      </h3>
+                      <div className="space-y-4">
+                        {result.corrections.map((item, index) => (
+                          <div key={index} className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-2">
+                              <span className="bg-red-100 text-red-700 px-3 py-1 rounded-lg text-sm font-mono line-through opacity-80 decoration-2">
+                                {item.original}
+                              </span>
+                              <ArrowRight size={16} className="text-slate-400 hidden sm:block" />
+                              <span className="bg-green-100 text-green-700 px-3 py-1 rounded-lg text-sm font-mono font-bold">
+                                {item.correction}
+                              </span>
+                            </div>
+                            <p className="text-sm text-slate-600 mt-2 pl-1 border-l-2 border-primary-200">
+                              {item.explanation}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-green-50 rounded-2xl p-6 border border-green-100 text-center">
+                      <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3 text-green-600">
+                        <Check size={32} />
+                      </div>
+                      <h3 className="font-bold text-green-800 text-lg">Чудова робота!</h3>
+                    </div>
+                  )}
+                  
+                  <button onClick={handleReset} className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl transition-colors">
+                    Перевірити іншу роботу
+                  </button>
+                </div>
+              ) : (
+                <div className="hidden md:flex h-full flex-col items-center justify-center text-slate-300 border-2 border-dashed border-slate-100 rounded-3xl p-8 text-center bg-slate-50/50">
+                  <div className="w-32 h-32 rounded-full bg-white mb-6 flex items-center justify-center shadow-sm">
+                    <Sparkles size={48} className="opacity-30" />
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-400 mb-2">Тут будуть результати</h3>
+                  <p className="max-w-xs">Обери клас, предмет та завантаж фото!</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // --- MAIN COMPONENT: App ---
+    const Dashboard = ({ onViewChange }) => (
+      <div className="p-6 md:p-12 max-w-6xl mx-auto pb-24 md:pb-12">
+        <div className="flex items-center gap-4 mb-8">
+          <div className="w-16 h-16 bg-primary-100 rounded-2xl flex items-center justify-center text-primary-600">
+            <GraduationCap size={40} />
+          </div>
+          <div>
+            <h1 className="text-4xl font-black text-slate-800 tracking-tight">Юний Ученик</h1>
+            <p className="text-lg text-slate-500 font-medium">Твій персональний помічник у навчанні</p>
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-6">
+          <div 
+            onClick={() => onViewChange('grader')}
+            className="bg-gradient-to-br from-primary-500 to-primary-600 rounded-3xl p-8 text-white shadow-xl shadow-primary-500/20 cursor-pointer hover:scale-[1.02] transition-transform relative overflow-hidden group"
+          >
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-500"></div>
+            <div className="relative z-10">
+              <h2 className="text-3xl font-bold mb-2">Перевірити ДЗ</h2>
+              <p className="opacity-90 mb-6 text-lg max-w-xs">Миттєва оцінка та виправлення помилок за допомогою ШІ.</p>
+              <button className="bg-white text-primary-600 px-6 py-3 rounded-xl font-bold shadow-sm group-hover:shadow-md transition-all">
+                Почати
+              </button>
+            </div>
+          </div>
+
+          <div 
+            onClick={() => onViewChange('folder')}
+            className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm cursor-pointer hover:border-primary-300 hover:shadow-md transition-all group"
+          >
+            <h2 className="text-3xl font-bold text-slate-800 mb-2">Мої Папки</h2>
+            <p className="text-slate-500 mb-6 text-lg">Зберігай та організовуй свої роботи з математики, мови та інших предметів.</p>
+            <div className="flex gap-3">
+               <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600"><span className="font-bold">М</span></div>
+               <div className="w-12 h-12 rounded-lg bg-yellow-100 flex items-center justify-center text-yellow-600"><span className="font-bold">У</span></div>
+               <div className="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center text-purple-600"><span className="font-bold">І</span></div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="mt-12 bg-slate-100 rounded-2xl p-6 text-center text-slate-400 text-sm">
+          <p>© 2024 Юний Ученик. Створено Артемом Процком для полегшення навчання.</p>
+        </div>
+      </div>
+    );
+
+    const App = () => {
+      const [currentView, setCurrentView] = useState('dashboard');
+      return (
+        <div className="flex min-h-screen bg-slate-50 font-sans">
+          <Navigation currentView={currentView} onChangeView={setCurrentView} />
+          <main className="flex-1 overflow-y-auto h-screen">
+            {currentView === 'dashboard' && <Dashboard onViewChange={setCurrentView} />}
+            {currentView === 'grader' && <HomeworkGrader />}
+            {currentView === 'folder' && <FolderSystem />}
+          </main>
+        </div>
+      );
+    };
+
+    const root = createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
 </html>
