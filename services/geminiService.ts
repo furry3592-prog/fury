@@ -30,7 +30,7 @@ export const analyzeHomework = async (
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image', // Using a model that supports images efficiently
+      model: 'gemini-2.5-flash',
       contents: {
         parts: [
           {
